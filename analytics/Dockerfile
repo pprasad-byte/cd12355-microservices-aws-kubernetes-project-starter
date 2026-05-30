@@ -1,5 +1,5 @@
 # Use Python 3.10 slim image — matches local dev (3.8+) and keeps image small
-FROM python:3.10-slim-bookworm
+FROM public.ecr.aws/docker/library/python:3.10-slim-bookworm
 
 # Set working directory inside container
 WORKDIR /app
