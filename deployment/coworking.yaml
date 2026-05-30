@@ -30,27 +30,36 @@ spec:
     spec:
       containers:
       - name: coworking
-        image: <DOCKER_IMAGE_URI_FROM_ECR>
+        image: 507633152665.dkr.ecr.us-east-1.amazonaws.com/coworking-analytics:1.0.1
         imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5153
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         livenessProbe:
           httpGet:
             path: /health_check
             port: 5153
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           timeoutSeconds: 2
         readinessProbe:
           httpGet:
-            path: "/readiness_check"
+            path: /readiness_check
             port: 5153
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           timeoutSeconds: 5
         envFrom:
         - configMapRef:
-            name: <NAME OF THE ConfigMap>
+            name: coworking-config
         env:
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: <NAME OF THE Secret>
-              key: <THE KEY FROM Secret WHICH has THE ENCODED PASSWORD>
+              name: coworking-secret
+              key: DB_PASSWORD
       restartPolicy: Always

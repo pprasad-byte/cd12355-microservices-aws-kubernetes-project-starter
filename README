@@ -1,0 +1,24 @@
+# Coworking Space Analytics — Deployment
+
+## Overview
+
+This service is a Python Flask analytics API for the Coworking Space Service. It exposes reports over check-in data backed by a PostgreSQL database. This README describes how the service is built, deployed, and operated on AWS EKS — and how a developer would ship a new release.
+
+## Architecture
+
+The application is packaged as a Docker image and runs as a Deployment on Amazon EKS. PostgreSQL also runs in-cluster as a Deployment backed by a manually-provisioned PersistentVolume. The Flask pod connects to the database over a ClusterIP Service named `postgresql-service`, and the API is exposed publicly via a LoadBalancer Service that AWS provisions as an Elastic Load Balancer. Plaintext database configuration is held in a ConfigMap (`coworking-config`); the password is held in a Secret (`coworking-secret`) and injected into the pod via `secretKeyRef`. Application stdout flows to CloudWatch Logs through the `amazon-cloudwatch-observability` EKS addon (fluent-bit + CloudWatch agent), under the `/aws/containerinsights/my-cluster/application` log group. Liveness and readiness probes hit `/health_check` and `/readiness_check` respectively — the readiness probe actually executes a SQL query, so traffic is only routed once the database connection is healthy.
+
+## Build & Release Pipeline
+
+The intended pipeline is: push to GitHub, AWS CodeBuild triggers via webhook, CodeBuild reads `buildspec.yml`, builds the image, tags it `1.0.${CODEBUILD_BUILD_NUMBER}` and `latest`, and pushes both tags to the ECR repository `coworking-analytics`. The CodeBuild service role has `AmazonEC2ContainerRegistryPowerUser` attached so it can push, and GitHub access is brokered via a Personal Access Token stored in AWS Secrets Manager. Note: in this sandboxed AWS Academy account, CodeBuild compute provisioning is restricted by the underlying role, so the equivalent build and push was performed via AWS CloudShell using the same docker build/tag/push commands the buildspec runs — the CodeBuild project itself is fully configured for a non-sandboxed environment.
+
+## Releasing a New Version
+
+To ship a change: update the code, bump the image tag in `deployment/coworking.yaml`, push to the `main` branch (CodeBuild builds and pushes the new image automatically), then `kubectl apply -f deployment/coworking.yaml` to roll the Deployment. Database schema migrations are out of scope here — for those, run the SQL via `kubectl port-forward svc/postgresql-service 5433:5432` and psql against the local port.
+
+## Verification
+
+After deploy, confirm pods are healthy with `kubectl get pods`, grab the LoadBalancer hostname from `kubectl get svc coworking`, then `curl http://<EXTERNAL-IP>:5153/health_check` returns `ok` and `/api/reports/daily_usage` returns JSON of visit counts. CloudWatch shows periodic `INFO in app: {date: visits}` lines from the APScheduler job that runs every 30 seconds — that's how you confirm the service is reading from the database successfully in production.
+
+---
+

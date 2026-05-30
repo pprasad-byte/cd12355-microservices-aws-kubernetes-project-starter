@@ -1,0 +1,66 @@
+NAME                         READY   STATUS    RESTARTS   AGE
+coworking-55cb89dcb8-kkt2r   1/1     Running   0          3m53s
+postgresql-6d565547b-4567l   1/1     Running   0          86m
+NAME                 TYPE           CLUSTER-IP      EXTERNAL-IP                                                               PORT(S)          AGE
+coworking            LoadBalancer   10.100.205.93   a381526d4c45e4e36a75e949501b712b-2043923130.us-east-1.elb.amazonaws.com   5153:32431/TCP   3m59s
+kubernetes           ClusterIP      10.100.0.1      <none>                                                                    443/TCP          105m
+postgresql-service   ClusterIP      10.100.24.74    <none>                                                                    5432/TCP         82m
+Name:              postgresql-service
+Namespace:         default
+Labels:            <none>
+Annotations:       <none>
+Selector:          app=postgresql
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.100.24.74
+IPs:               10.100.24.74
+Port:              <unset>  5432/TCP
+TargetPort:        5432/TCP
+Endpoints:         192.168.9.103:5432
+Session Affinity:  None
+Events:            <none>
+Name:                   coworking
+Namespace:              default
+CreationTimestamp:      Sat, 30 May 2026 04:19:41 +0000
+Labels:                 name=coworking
+Annotations:            deployment.kubernetes.io/revision: 1
+Selector:               service=coworking
+Replicas:               1 desired | 1 updated | 1 total | 1 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  service=coworking
+  Containers:
+   coworking:
+    Image:      507633152665.dkr.ecr.us-east-1.amazonaws.com/coworking-analytics:1.0.1
+    Port:       5153/TCP
+    Host Port:  0/TCP
+    Limits:
+      cpu:     500m
+      memory:  512Mi
+    Requests:
+      cpu:      100m
+      memory:   128Mi
+    Liveness:   http-get http://:5153/health_check delay=10s timeout=2s period=10s #success=1 #failure=3
+    Readiness:  http-get http://:5153/readiness_check delay=10s timeout=5s period=10s #success=1 #failure=3
+    Environment Variables from:
+      coworking-config  ConfigMap  Optional: false
+    Environment:
+      DB_PASSWORD:  <set to the key 'DB_PASSWORD' in secret 'coworking-secret'>  Optional: false
+    Mounts:         <none>
+  Volumes:          <none>
+  Node-Selectors:   <none>
+  Tolerations:      <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      True    MinimumReplicasAvailable
+  Progressing    True    NewReplicaSetAvailable
+OldReplicaSets:  <none>
+NewReplicaSet:   coworking-55cb89dcb8 (1/1 replicas created)
+Events:
+  Type    Reason             Age    From                   Message
+  ----    ------             ----   ----                   -------
+  Normal  ScalingReplicaSet  4m10s  deployment-controller  Scaled up replica set coworking-55cb89dcb8 from 0 to 1
